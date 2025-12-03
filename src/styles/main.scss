@@ -4,6 +4,9 @@
  */
 @use 'sass:color';
 @use './variables' as *;
+body {
+  margin: 0;
+}
 
 // ==================== 按钮基础样式 ====================
 .btn {

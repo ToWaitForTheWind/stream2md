@@ -5,14 +5,14 @@
 import type { App, Plugin } from 'vue'
 
 // 导出组件
-import HelloWorld from './components/HelloWorld.vue'
+import MDContent from '@/components/MDContent.vue'
 
 // 导出样式
-import './styles/main.scss'
+import '@/styles/main.scss'
 
 // 组件列表
 const components = {
-  HelloWorld
+  MDContent
 }
 
 // 插件安装函数
@@ -29,5 +29,5 @@ const install: Plugin = {
 export default install
 
 // 按需导出组件
-export { HelloWorld }
+export { MDContent }
 

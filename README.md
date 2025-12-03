@@ -60,7 +60,7 @@ app.use(Stream2md)
 ### 按需引入
 
 ```typescript
-import { HelloWorld } from 'stream2md'
+import { MDContent } from 'stream2md'
 import 'stream2md/style.css'
 ```
 

@@ -6,6 +6,12 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [vue()],
 
+  // 开发服务器配置
+  server: {
+    port: 5173,
+    strictPort: false  // 端口被占用时自动递增
+  },
+
   // 路径别名配置
   resolve: {
     alias: {

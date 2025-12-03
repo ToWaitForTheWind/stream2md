@@ -18,7 +18,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vue-tsc -b && vite build",
     "build:lib": "vite build && vue-tsc --declaration --emitDeclarationOnly --outDir dist/types",
     "preview": "vite preview",
@@ -36,13 +36,19 @@
     "vue": "^3.5.0"
   },
   "devDependencies": {
-    "vue": "^3.5.24",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
     "sass": "^1.94.2",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
+    "vue": "^3.5.24",
     "vue-tsc": "^3.1.4"
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "vue-router": "^4.6.3"
   }
 }
