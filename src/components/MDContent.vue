@@ -1,5 +1,5 @@
 <template>
-  <div class="md-content">
+  <div class="md-content" ref="contentRef">
     <VNodeRenderer />
   </div>
 </template>
@@ -8,12 +8,21 @@
 /**
  * MDContent - Markdown 内容渲染组件
  * 支持流式输入，实时渲染 Markdown 内容
+ * 支持 Mermaid 图表语法
  * 优化策略：流式渲染时使用轻量渲染，完成后再完整渲染
  */
-import { ref, watch, h, type VNode, Fragment, onUnmounted } from 'vue';
+import { ref, watch, h, type VNode, Fragment, onUnmounted, nextTick } from 'vue';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
+import mermaid from 'mermaid';
 import 'highlight.js/styles/atom-one-dark.css';
+
+// 初始化 Mermaid 配置
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+});
 
 // 子节点类型
 type VNodeChild = VNode | string;
@@ -33,6 +42,8 @@ const modelValue = defineModel<string>('modelValue', { default: '' });
 
 // 渲染后的 VNode
 const contentVNode = ref<VNode>(h(Fragment));
+// 容器 DOM 引用
+const contentRef = ref<HTMLElement | null>(null);
 
 // 节流相关状态
 let lastRenderTime = 0;
@@ -40,6 +51,8 @@ let pendingRender = false;
 let rafId: number | null = null;
 let lastContent = '';
 let streamEndTimer: ReturnType<typeof setTimeout> | null = null;
+// Mermaid 图表 ID 计数器
+let mermaidIdCounter = 0;
 
 // 复用 DOMParser 实例
 const domParser = new DOMParser();
@@ -52,6 +65,17 @@ const createMarkdownParser = (enableHighlight: boolean) => {
   return new MarkdownIt({
     html: true,
     highlight(str: string, lang: string): string {
+      // Mermaid 代码块特殊处理
+      if (lang === 'mermaid') {
+        // 流式渲染时显示占位符
+        if (!enableHighlight) {
+          return `<div class="mermaid-placeholder"><pre><code>${str.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre></div>`;
+        }
+        // 完整渲染时生成 Mermaid 容器
+        const id = `mermaid-${++mermaidIdCounter}`;
+        return `<div class="mermaid-container" data-mermaid-id="${id}"><pre class="mermaid">${str}</pre></div>`;
+      }
+      
       // 流式渲染时跳过高亮，直接返回纯代码
       if (!enableHighlight) {
         const escaped = str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -74,6 +98,24 @@ const createMarkdownParser = (enableHighlight: boolean) => {
 const mdLight = createMarkdownParser(false);
 // 完整解析器（带高亮）用于最终渲染
 const mdFull = createMarkdownParser(true);
+
+/**
+ * 渲染 Mermaid 图表
+ */
+const renderMermaid = async () => {
+  if (!contentRef.value) return;
+  
+  const mermaidElements = contentRef.value.querySelectorAll('.mermaid');
+  if (mermaidElements.length === 0) return;
+  
+  try {
+    await mermaid.run({
+      nodes: mermaidElements as NodeListOf<HTMLElement>,
+    });
+  } catch (error) {
+    console.warn('Mermaid 渲染失败:', error);
+  }
+};
 
 /**
  * 将 HTML 字符串转换为 VNode 树
@@ -122,6 +164,11 @@ const doRender = (content: string, useFullRender: boolean) => {
   const md = useFullRender ? mdFull : mdLight;
   const html = md.render(content);
   contentVNode.value = htmlToVNode(html);
+  
+  // 完整渲染时执行 Mermaid 渲染
+  if (useFullRender) {
+    nextTick(renderMermaid);
+  }
 };
 
 /**
@@ -137,7 +184,7 @@ const scheduleRender = (content: string) => {
   
   // 设置流式结束检测：200ms 无更新则认为流式结束
   streamEndTimer = setTimeout(() => {
-    // 流式结束后进行完整渲染（带代码高亮）
+    // 流式结束后进行完整渲染（带代码高亮和 Mermaid）
     if (content) {
       doRender(content, true);
     }
@@ -234,6 +281,45 @@ onUnmounted(() => {
   :deep(img) {
     max-width: 100%;
     height: auto;
+  }
+
+  // Mermaid 容器样式
+  :deep(.mermaid-container) {
+    margin: 1em 0;
+    
+    .mermaid {
+      background: #f8f9fa;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  }
+
+  // Mermaid 占位符样式（流式渲染时）
+  :deep(.mermaid-placeholder) {
+    margin: 1em 0;
+    padding: 1em;
+    background: #f0f0f0;
+    border-radius: 6px;
+    border: 2px dashed #ccc;
+    
+    &::before {
+      content: '📊 Mermaid 图表 (渲染中...)';
+      display: block;
+      color: #666;
+      font-size: 0.85em;
+      margin-bottom: 0.5em;
+    }
+    
+    pre {
+      margin: 0;
+      background: transparent;
+    }
+    
+    code {
+      font-size: 0.85em;
+      color: #555;
+    }
   }
 }
 </style>
